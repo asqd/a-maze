@@ -20,17 +20,19 @@ const TILE_MAPPING = {
     { index: 691, weight: 1 },
   ],
   DOOR: {
-    TOP: [837, 0, 836],
+    TOP: [837, 0, 0, 836],
     // prettier-ignore
     LEFT: [
         [837],
         [0],
+        [0],
         [788] // угол
       ],
-    BOTTOM: [788, 0, 787],
+    BOTTOM: [788, 0, 0, 787],
     // prettier-ignore
     RIGHT: [
         [836],
+        [0],
         [0],
         [787]
       ],

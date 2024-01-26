@@ -1,7 +1,10 @@
 import Phaser from "phaser";
 import Dungeon from "@mikewesthad/dungeon";
-import TILES from "./tile-mapping.js";
+import TILES from "./TileMapping.js";
+import LevelMap from "./LevelMap.js"
+import Player from "./Player.js"
 import TileMap from "../assets/colored_packed.png"
+import TransparentTileMap from "../assets/colored-transparent_packed.png"
 
 class GameScene extends Phaser.Scene {
   constructor() {
@@ -12,7 +15,10 @@ class GameScene extends Phaser.Scene {
   }
 
   preload() {
+    const spriteConfig = { frameWidth: 14, frameHeight: 14, margin: 1, spacing: 2 }
+
     this.load.image("tiles", TileMap);
+    this.load.spritesheet("characters", TransparentTileMap, spriteConfig);
   }
 
   create() {
@@ -26,7 +32,7 @@ class GameScene extends Phaser.Scene {
     this.dungeon = new Dungeon({
       width: 50,
       height: 50,
-      doorPadding: 2,
+      doorPadding: 3,
       rooms: {
         width: { min: 7, max: 15, onlyOdd: true },
         height: { min: 7, max: 15, onlyOdd: true },
@@ -35,46 +41,93 @@ class GameScene extends Phaser.Scene {
     // this.dungeon.drawToConsole();
 
     // Creating a blank tilemap with dimensions matching the dungeon
-    this.map = this.initMap();
+    const mapConfig = {
+      tileWidth: 14,
+      tileHeight: 14,
+      width: this.dungeon.width,
+      height: this.dungeon.height,
+    }
 
-    this.tileset = this.map.addTilesetImage("tiles", null, 14, 14, 1, 2);
+    const tilesetConfig = {
+      tilesetName: "tiles",
+      key: null,
+      tileWidth: 14,
+      tileHeight: 14,
+      tileMargin: 1,
+      tileSpacing: 2,
+      // gid: null
+    }
 
-    this.initLayers();
-    this.fillGroundLayer();
-    // const camera = this.cameras.main;
+    this.map = new LevelMap(this, mapConfig, tilesetConfig)
+    // this.map = this.initMap();
 
+    // this.tileset = this.map.addTilesetImage("tiles", null, 14, 14, 1, 2);
+
+    // this.initLayers();
+    // this.fillGroundLayer();
+
+    // Separate out the rooms into:
+    //  - The starting room (index = 0)
+    //  - A random room to be designated as the end room (with stairs and nothing else)
+    //  - An array of 90% of the remaining rooms, for placing random stuff (leaving 10% empty)
+    const rooms = this.dungeon.rooms.slice();
+    const startRoom = rooms.shift();
+    const endRoom = Phaser.Utils.Array.RemoveRandomElement(rooms);
+    const otherRooms = Phaser.Utils.Array.Shuffle(rooms).slice(
+      0,
+      rooms.length * 0.9
+    );
+
+    // this.cameras.main.setBounds(
+    //   0,
+    //   0,
+    //   this.map.widthInPixels,
+    //   this.map.heightInPixels
+    // );
+
+    // const cursors = this.input.keyboard.createCursorKeys();
+
+    // const controlConfig = {
+    //   camera: this.cameras.main,
+    //   left: cursors.left,
+    //   right: cursors.right,
+    //   up: cursors.up,
+    //   down: cursors.down,
+    //   zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+    //   zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+    //   acceleration: 0.06,
+    //   drag: 0.0005,
+    //   maxSpeed: 1.0,
+    // };
+
+    // this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(
+    //   controlConfig
+    // );
+    const playerRoom = startRoom;
+    const x = this.map.tileToWorldX(playerRoom.centerX);
+    const y = this.map.tileToWorldY(playerRoom.centerY);
+
+    this.player = new Player(this, x, y, 'characters', 25);
+    // Watch the player and tilemap layers for collisions, for the duration of the scene:
+    this.map.groundLayer.setCollisionByExclusion([-1, 0, 1, 2, 3, 4])
+    // this.map.setCollisionByExclusion([-1])
+    // this.map.setCollisionBetween(1, 99, true, true, this.map.groundLayer)
+    this.physics.add.collider(this.player, this.map.groundLayer);
+    // this.map.setCollisionBetween(1, 99, true)
+    // this.physics.add.collider(this.player.sprite, this.map.stuffLayer);
+
+    const camera = this.cameras.main;
+    camera.setZoom(3)
     // Constrain the camera so that it isn't allowed to move outside the width/height of tilemap
-    // camera.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+    camera.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+    camera.startFollow(this.player);
 
-    this.cameras.main.setBounds(
-      0,
-      0,
-      this.map.widthInPixels,
-      this.map.heightInPixels
-    );
-
-    const cursors = this.input.keyboard.createCursorKeys();
-
-    const controlConfig = {
-      camera: this.cameras.main,
-      left: cursors.left,
-      right: cursors.right,
-      up: cursors.up,
-      down: cursors.down,
-      zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
-      zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-      acceleration: 0.06,
-      drag: 0.0005,
-      maxSpeed: 1.0,
-    };
-
-    this.controls = new Phaser.Cameras.Controls.SmoothedKeyControl(
-      controlConfig
-    );
   }
 
   update(time, delta) {
-    this.controls.update(delta);
+    // this.controls.update(delta);
+    this.player.update();
+
   }
 
 

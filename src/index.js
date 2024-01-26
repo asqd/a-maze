@@ -7,7 +7,7 @@ const config = {
   type: Phaser.AUTO,
   scale: {
     parent: "game-container",
-    zoom: 0.6,
+    zoom: 0.1,
     width: 800,
     height: 600,
     autoCenter: Phaser.DOM.CENTER_BOTH,
